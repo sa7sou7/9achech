@@ -1,4 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 using WebApplication5.Data;
 using WebApplication5.Models;
 
@@ -49,14 +52,33 @@ namespace WebApplication5.Repository
         public async Task<Tiers> GetTiersWithContactsAsync(int id)
         {
             return await _context.Tiers
-                .Include(t => t.Contacts) // Ensure contacts are included
+                .Include(t => t.Contacts)
                 .FirstOrDefaultAsync(t => t.Id == id);
         }
 
         public async Task<IEnumerable<Tiers>> GetAllWithContactsAsync()
         {
             return await _context.Tiers
-                .Include(t => t.Contacts) // Eager load contacts
+                .Include(t => t.Contacts)
+                .ToListAsync();
+        }
+
+        public async Task<IEnumerable<Tiers>> GetTiersByCommercialIdAsync(string commercialId)
+        {
+            var tiersIds = await _context.Sales
+                .Where(s => s.DocRepresentant == commercialId)
+                .Select(s => s.TiersId)
+                .Distinct()
+                .ToListAsync();
+
+            if (!tiersIds.Any())
+            {
+                return Enumerable.Empty<Tiers>();
+            }
+
+            return await _context.Tiers
+                .Include(t => t.Contacts)
+                .Where(t => tiersIds.Contains(t.Id))
                 .ToListAsync();
         }
     }

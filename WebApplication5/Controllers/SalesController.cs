@@ -1,8 +1,10 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using WebApplication5.Data;
 using WebApplication5.Dto;
 using WebApplication5.Models;
+using WebApplication5.Repositories;
 using WebApplication5.Repository;
 using WebApplication5.Services;
 
@@ -10,20 +12,24 @@ namespace WebApplication5.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+
     public class SalesController : ControllerBase
     {
         private readonly ISaleRepository _saleRepository;
+        private readonly IVisitRepository _visitRepository; // Add this for Commercial validation
         private readonly ISyncService _syncService;
         private readonly ILogger<SalesController> _logger;
         private readonly AppDbContext _context;
 
         public SalesController(
             ISaleRepository saleRepository,
+            IVisitRepository visitRepository, // Add this
             ISyncService syncService,
             ILogger<SalesController> logger,
             AppDbContext context)
         {
             _saleRepository = saleRepository;
+            _visitRepository = visitRepository;
             _syncService = syncService;
             _logger = logger;
             _context = context;
@@ -91,6 +97,7 @@ namespace WebApplication5.Controllers
 
         // POST: api/Sales
         [HttpPost]
+        // Add this to restrict to Admin/Manager
         public async Task<ActionResult<SaleDto>> CreateSale([FromBody] SaleDto saleDto)
         {
             try
@@ -102,6 +109,14 @@ namespace WebApplication5.Controllers
                 }
 
                 _logger.LogInformation($"Creating sale with DocRef: {saleDto.DocRef}");
+
+                // Validate Commercial (DocRepresentant)
+                if (!await _visitRepository.CommercialExistsAsync(saleDto.DocRepresentant))
+                {
+                    _logger.LogWarning($"Commercial with Cref {saleDto.DocRepresentant} does not exist.");
+                    return BadRequest(new { error = $"Commercial with Cref {saleDto.DocRepresentant} does not exist." });
+                }
+
                 var client = await _context.Tiers.FirstOrDefaultAsync(t => t.Matricule == saleDto.DocTiers);
                 if (client == null)
                 {
@@ -120,7 +135,6 @@ namespace WebApplication5.Controllers
 
                 var createdSale = await _saleRepository.AddAsync(sale);
 
-                // Update DTO with created ID (though not strictly necessary since DTO doesn't have Id)
                 _logger.LogInformation($"Created sale with ID: {createdSale.Id}");
                 return CreatedAtAction(nameof(GetSale), new { id = createdSale.Id }, saleDto);
             }
@@ -133,6 +147,7 @@ namespace WebApplication5.Controllers
 
         // PUT: api/Sales/{id}
         [HttpPut("{id}")]
+
         public async Task<IActionResult> UpdateSale(int id, [FromBody] SaleDto saleDto)
         {
             try
@@ -149,6 +164,13 @@ namespace WebApplication5.Controllers
                 {
                     _logger.LogWarning($"Sale with ID {id} not found for update");
                     return NotFound(new { error = $"Sale with ID {id} not found" });
+                }
+
+                // Validate Commercial (DocRepresentant)
+                if (!await _visitRepository.CommercialExistsAsync(saleDto.DocRepresentant))
+                {
+                    _logger.LogWarning($"Commercial with Cref {saleDto.DocRepresentant} does not exist.");
+                    return BadRequest(new { error = $"Commercial with Cref {saleDto.DocRepresentant} does not exist." });
                 }
 
                 var client = await _context.Tiers.FirstOrDefaultAsync(t => t.Matricule == saleDto.DocTiers);
@@ -183,6 +205,7 @@ namespace WebApplication5.Controllers
 
         // DELETE: api/Sales/{id}
         [HttpDelete("{id}")]
+
         public async Task<IActionResult> DeleteSale(int id)
         {
             try
@@ -207,6 +230,7 @@ namespace WebApplication5.Controllers
 
         // POST: api/Sales/sync
         [HttpPost("sync")]
+
         public async Task<IActionResult> SyncSales()
         {
             try
@@ -220,6 +244,32 @@ namespace WebApplication5.Controllers
             {
                 _logger.LogError(ex, "Failed to synchronize sales");
                 return StatusCode(500, new { error = "Failed to synchronize sales: " + ex.Message });
+            }
+        }
+
+        // GET: api/Sales/commercial/{commercialId}/tiers
+        [HttpGet("commercial/{commercialId}/tiers")]
+        // Restrict to Commercial role
+        public async Task<IActionResult> GetTiersByCommercial(string commercialId)
+        {
+            try
+            {
+                _logger.LogInformation($"Fetching Tiers for Commercial {commercialId}");
+
+                // Validate CommercialId
+                if (!await _visitRepository.CommercialExistsAsync(commercialId))
+                {
+                    _logger.LogWarning($"Commercial with Cref {commercialId} does not exist.");
+                    return BadRequest(new { error = $"Commercial with Cref {commercialId} does not exist." });
+                }
+
+                var tiers = await _saleRepository.GetTiersByCommercialAsync(commercialId);
+                return Ok(tiers);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error fetching Tiers for Commercial {commercialId}");
+                return StatusCode(500, new { error = $"Failed to fetch Tiers for Commercial {commercialId}: {ex.Message}" });
             }
         }
     }

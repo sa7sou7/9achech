@@ -1,9 +1,10 @@
 ﻿namespace WebApplication5.Dto
 {
+
     public class LoginDto
     {
-        public string Username { get; set; } = string.Empty;
-        public string Password { get; set; } = string.Empty;
-
+        public string Email { get; set; }  // Changed from Username to Email
+        public string Password { get; set; }
     }
+
 }
