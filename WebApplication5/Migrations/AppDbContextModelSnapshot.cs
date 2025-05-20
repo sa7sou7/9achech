@@ -258,6 +258,41 @@ namespace WebApplication5.Migrations
                     b.ToTable("Articles");
                 });
 
+            modelBuilder.Entity("WebApplication5.Models.ChecklistRapport", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Commentaire")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<decimal?>("ExpectedRecoveryAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<bool>("IsCompleted")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("Libelle")
+                        .HasColumnType("int");
+
+                    b.Property<decimal?>("RemainingRecoveryAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("VisitId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("VisitId");
+
+                    b.ToTable("ChecklistRapports");
+                });
+
             modelBuilder.Entity("WebApplication5.Models.Commercial", b =>
                 {
                     b.Property<string>("Cref")
@@ -319,6 +354,37 @@ namespace WebApplication5.Migrations
                     b.ToTable("CommercialTasks");
                 });
 
+            modelBuilder.Entity("WebApplication5.Models.CompetitorProduct", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ImageUrl")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal>("Price")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("ProductName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("VisitId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("VisitId");
+
+                    b.ToTable("CompetitorProducts");
+                });
+
             modelBuilder.Entity("WebApplication5.Models.Contacts", b =>
                 {
                     b.Property<int>("Id")
@@ -345,6 +411,95 @@ namespace WebApplication5.Migrations
                     b.ToTable("Contacts");
                 });
 
+            modelBuilder.Entity("WebApplication5.Models.Notification", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsRead")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("RecipientId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("VisitId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Notifications");
+                });
+
+            modelBuilder.Entity("WebApplication5.Models.Order", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("OrderDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("OrderRef")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal>("TotalAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("VisitId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("VisitId");
+
+                    b.ToTable("Orders");
+                });
+
+            modelBuilder.Entity("WebApplication5.Models.OrderLine", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ArticleId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("OrderId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("UnitPrice")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ArticleId");
+
+                    b.HasIndex("OrderId");
+
+                    b.ToTable("OrderLines");
+                });
+
             modelBuilder.Entity("WebApplication5.Models.Product", b =>
                 {
                     b.Property<int>("Id")
@@ -363,6 +518,92 @@ namespace WebApplication5.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Products");
+                });
+
+            modelBuilder.Entity("WebApplication5.Models.Quote", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("QuoteDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("QuoteRef")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal>("TotalAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("VisitId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("VisitId");
+
+                    b.ToTable("Quotes");
+                });
+
+            modelBuilder.Entity("WebApplication5.Models.QuoteLine", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ArticleId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("int");
+
+                    b.Property<int>("QuoteId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("UnitPrice")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ArticleId");
+
+                    b.HasIndex("QuoteId");
+
+                    b.ToTable("QuoteLines");
+                });
+
+            modelBuilder.Entity("WebApplication5.Models.Recovery", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("AmountCollected")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("CollectionDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("VisitId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("VisitId");
+
+                    b.ToTable("Recoveries");
                 });
 
             modelBuilder.Entity("WebApplication5.Models.Sale", b =>
@@ -458,29 +699,27 @@ namespace WebApplication5.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("CommercialId")
+                    b.Property<string>("CommercialCref")
                         .IsRequired()
                         .HasColumnType("nvarchar(450)");
 
-                    b.Property<DateTime?>("CompletedDate")
+                    b.Property<DateTime>("Date")
                         .HasColumnType("datetime2");
 
-                    b.Property<bool>("IsValidated")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("Report")
+                    b.Property<string>("Note")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
 
-                    b.Property<DateTime>("ScheduledDate")
-                        .HasColumnType("datetime2");
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
 
                     b.Property<int>("TiersId")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CommercialId");
+                    b.HasIndex("CommercialCref");
 
                     b.HasIndex("TiersId");
 
@@ -608,6 +847,17 @@ namespace WebApplication5.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("WebApplication5.Models.ChecklistRapport", b =>
+                {
+                    b.HasOne("WebApplication5.Models.Visit", "Visit")
+                        .WithMany()
+                        .HasForeignKey("VisitId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Visit");
+                });
+
             modelBuilder.Entity("WebApplication5.Models.Commercial", b =>
                 {
                     b.HasOne("Microsoft.AspNetCore.Identity.IdentityUser", "User")
@@ -630,6 +880,17 @@ namespace WebApplication5.Migrations
                     b.Navigation("Commercial");
                 });
 
+            modelBuilder.Entity("WebApplication5.Models.CompetitorProduct", b =>
+                {
+                    b.HasOne("WebApplication5.Models.Visit", "Visit")
+                        .WithMany()
+                        .HasForeignKey("VisitId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Visit");
+                });
+
             modelBuilder.Entity("WebApplication5.Models.Contacts", b =>
                 {
                     b.HasOne("WebApplication5.Models.Tiers", "Tiers")
@@ -639,6 +900,77 @@ namespace WebApplication5.Migrations
                         .IsRequired();
 
                     b.Navigation("Tiers");
+                });
+
+            modelBuilder.Entity("WebApplication5.Models.Order", b =>
+                {
+                    b.HasOne("WebApplication5.Models.Visit", "Visit")
+                        .WithMany()
+                        .HasForeignKey("VisitId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Visit");
+                });
+
+            modelBuilder.Entity("WebApplication5.Models.OrderLine", b =>
+                {
+                    b.HasOne("WebApplication5.Models.Article", "Article")
+                        .WithMany()
+                        .HasForeignKey("ArticleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("WebApplication5.Models.Order", "Order")
+                        .WithMany("OrderLines")
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Article");
+
+                    b.Navigation("Order");
+                });
+
+            modelBuilder.Entity("WebApplication5.Models.Quote", b =>
+                {
+                    b.HasOne("WebApplication5.Models.Visit", "Visit")
+                        .WithMany()
+                        .HasForeignKey("VisitId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Visit");
+                });
+
+            modelBuilder.Entity("WebApplication5.Models.QuoteLine", b =>
+                {
+                    b.HasOne("WebApplication5.Models.Article", "Article")
+                        .WithMany()
+                        .HasForeignKey("ArticleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("WebApplication5.Models.Quote", "Quote")
+                        .WithMany("QuoteLines")
+                        .HasForeignKey("QuoteId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Article");
+
+                    b.Navigation("Quote");
+                });
+
+            modelBuilder.Entity("WebApplication5.Models.Recovery", b =>
+                {
+                    b.HasOne("WebApplication5.Models.Visit", "Visit")
+                        .WithMany()
+                        .HasForeignKey("VisitId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Visit");
                 });
 
             modelBuilder.Entity("WebApplication5.Models.Sale", b =>
@@ -656,7 +988,7 @@ namespace WebApplication5.Migrations
                 {
                     b.HasOne("WebApplication5.Models.Commercial", "Commercial")
                         .WithMany()
-                        .HasForeignKey("CommercialId")
+                        .HasForeignKey("CommercialCref")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -674,7 +1006,7 @@ namespace WebApplication5.Migrations
             modelBuilder.Entity("WebApplication5.Models.VisitChecklist", b =>
                 {
                     b.HasOne("WebApplication5.Models.Visit", "Visit")
-                        .WithMany("Objectives")
+                        .WithMany()
                         .HasForeignKey("VisitId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -701,14 +1033,19 @@ namespace WebApplication5.Migrations
                     b.Navigation("VisitChecklist");
                 });
 
+            modelBuilder.Entity("WebApplication5.Models.Order", b =>
+                {
+                    b.Navigation("OrderLines");
+                });
+
+            modelBuilder.Entity("WebApplication5.Models.Quote", b =>
+                {
+                    b.Navigation("QuoteLines");
+                });
+
             modelBuilder.Entity("WebApplication5.Models.Tiers", b =>
                 {
                     b.Navigation("Contacts");
-                });
-
-            modelBuilder.Entity("WebApplication5.Models.Visit", b =>
-                {
-                    b.Navigation("Objectives");
                 });
 
             modelBuilder.Entity("WebApplication5.Models.VisitChecklist", b =>

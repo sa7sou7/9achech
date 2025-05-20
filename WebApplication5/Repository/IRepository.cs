@@ -1,4 +1,6 @@
-﻿using WebApplication5.Models;
+﻿using System.Collections.Generic;
+using System.Threading.Tasks;
+using WebApplication5.Models;
 
 namespace WebApplication5.Repository
 {
@@ -9,8 +11,8 @@ namespace WebApplication5.Repository
         Task<T> GetByIdAsync(int id);
         Task<T> DeleteAsync(T entity);
         Task<IEnumerable<T>> GetAllAsync();
-
-        Task<IEnumerable<Tiers>> GetAllWithContactsAsync(); // Add this method to the interface
-        Task<Tiers> GetTiersWithContactsAsync(int id); // Add this method to the interface
+        Task<IEnumerable<Tiers>> GetAllWithContactsAsync();
+        Task<Tiers> GetTiersWithContactsAsync(int id);
+        Task<IEnumerable<Tiers>> GetTiersByCommercialIdAsync(string commercialId); // New method
     }
 }

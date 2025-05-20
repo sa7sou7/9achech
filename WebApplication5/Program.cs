@@ -1,45 +1,42 @@
-using Microsoft.AspNetCore.Authentication.JwtBearer; // Ajouté ici
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
+using System.Text.Json.Serialization;
 using WebApplication5.Data;
+using WebApplication5.Repositories;
 using WebApplication5.Repository;
 using WebApplication5.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container
-builder.Services.AddControllers();
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+        options.JsonSerializerOptions.WriteIndented = true;
+        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+    });
 
-// Register HttpClient with IHttpClientFactory
-builder.Services.AddHttpClient<IApiService, ApiService>(client =>
+// Configure CORS
+builder.Services.AddCors(options =>
 {
-    client.BaseAddress = new Uri(builder.Configuration["ExternalApi:BaseUrl"] ?? "https://cmc.crm-edi.info/apisif/public/api/");
-    client.Timeout = TimeSpan.FromSeconds(
-        int.TryParse(builder.Configuration["ExternalApi:TimeoutInSeconds"], out var timeout) ? timeout : 30);
+    options.AddPolicy("AllowAll", builder =>
+    {
+        builder.AllowAnyOrigin()
+               .AllowAnyMethod()
+               .AllowAnyHeader();
+    });
 });
 
-// Register repositories and services
-builder.Services.AddScoped<ISyncService, SyncService>();
-builder.Services.AddScoped<IApiService, ApiService>();
-builder.Services.AddScoped<IArticleSyncService, ArticleSyncService>();
-builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
-builder.Services.AddScoped<ISaleRepository, SaleRepository>();
-builder.Services.AddScoped<IVisitRepository, VisitRepository>();
-builder.Services.AddScoped<ICommercialTaskRepository, CommercialTaskRepository>();
-builder.Services.AddHostedService<VisitNotificationService>();
-builder.Services.AddScoped<IArticleRepository, ArticleRepository>();
-builder.Services.AddScoped<IVisitRepository, VisitRepository>();
-
-// Configure DbContext with SQL Server
+// Database and Identity configurations
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"),
+        options => options.EnableRetryOnFailure()));
 
-// Add Identity services
 builder.Services.AddIdentity<IdentityUser, IdentityRole>(options =>
 {
     options.Password.RequireDigit = true;
@@ -52,42 +49,71 @@ builder.Services.AddIdentity<IdentityUser, IdentityRole>(options =>
     .AddEntityFrameworkStores<AppDbContext>()
     .AddDefaultTokenProviders();
 
-// Configure JWT Authentication
-var jwtSettings = builder.Configuration.GetSection("JwtSettings");
+// Add distributed memory cache and session services
+builder.Services.AddDistributedMemoryCache();
+builder.Services.AddSession(options =>
+{
+    options.IdleTimeout = TimeSpan.FromMinutes(30);
+    options.Cookie.IsEssential = true;
+});
+
+// JWT Authentication
+var jwtSettings = builder.Configuration.GetSection("Jwt");
+var key = Encoding.UTF8.GetBytes(jwtSettings["Key"] ?? throw new InvalidOperationException("JWT Key is not configured."));
+
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
     options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
 })
-
 .AddJwtBearer(options =>
 {
     options.TokenValidationParameters = new TokenValidationParameters
     {
-        ValidateIssuer = true,
-        ValidateAudience = true,
-        ValidateLifetime = true,
         ValidateIssuerSigningKey = true,
+        IssuerSigningKey = new SymmetricSecurityKey(key),
+        ValidateIssuer = true,
         ValidIssuer = jwtSettings["Issuer"],
+        ValidateAudience = true,
         ValidAudience = jwtSettings["Audience"],
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings["Key"] ?? throw new ArgumentNullException("JWT Key is missing")))
+        ValidateLifetime = true,
+        ClockSkew = TimeSpan.Zero
     };
 });
 
-// Add authorization policies for roles
-builder.Services.AddAuthorization(options =>
+// Register HttpClient
+builder.Services.AddHttpClient<IApiService, ApiService>(client =>
 {
-    options.AddPolicy("AdminOnly", policy => policy.RequireRole("Admin"));
-    options.AddPolicy("ManagerOnly", policy => policy.RequireRole("Manager"));
-    options.AddPolicy("CommercialOnly", policy => policy.RequireRole("Commercial"));
-    options.AddPolicy("AdminOrManager", policy => policy.RequireRole("Admin", "Manager"));
+    client.BaseAddress = new Uri(builder.Configuration["ExternalApi:BaseAddress"] ?? "https://cmc.crm-edi.info/apisif/public/api/");
+    client.Timeout = TimeSpan.FromSeconds(30);
 });
-// Add this to your services configuration
+
+// Register repositories and services
+builder.Services.AddScoped<ISyncService, SyncService>();
+builder.Services.AddScoped<IApiService, ApiService>();
+builder.Services.AddScoped<IArticleSyncService, ArticleSyncService>();
+builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
+builder.Services.AddScoped<ISaleRepository, SaleRepository>();
+builder.Services.AddScoped<IVisitRepository, VisitRepository>();
+builder.Services.AddScoped<ICommercialTaskRepository, CommercialTaskRepository>();
+builder.Services.AddScoped<IArticleRepository, ArticleRepository>();
+builder.Services.AddScoped<IOrderRepository, OrderRepository>();
+builder.Services.AddScoped<IQuoteRepository, QuoteRepository>();
+builder.Services.AddScoped<IChecklistRapportRepository, ChecklistRapportRepository>();
+
+builder.Services.AddScoped<ICompetitorProductRepository, CompetitorProductRepository>();
+builder.Services.AddScoped<IRecoveryRepository, RecoveryRepository>();
+builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
+builder.Services.AddScoped<NotificationService>();
+builder.Services.AddScoped<UserMappingService>();
+
+
+// Swagger configuration
+builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
-    c.SwaggerDoc("v1", new OpenApiInfo { Title = "Your API", Version = "v1" });
+    c.SwaggerDoc("v1", new OpenApiInfo { Title = "WebApplication5 API", Version = "v1" });
 
-    // Add JWT Authentication support in Swagger
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Description = "JWT Authorization header using the Bearer scheme. Example: \"Authorization: Bearer {token}\"",
@@ -97,7 +123,7 @@ builder.Services.AddSwaggerGen(c =>
         Scheme = "Bearer"
     });
 
-    c.AddSecurityRequirement(new OpenApiSecurityRequirement()
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement
     {
         {
             new OpenApiSecurityScheme
@@ -106,21 +132,24 @@ builder.Services.AddSwaggerGen(c =>
                 {
                     Type = ReferenceType.SecurityScheme,
                     Id = "Bearer"
-                },
-                Scheme = "oauth2",
-                Name = "Bearer",
-                In = ParameterLocation.Header,
+                }
             },
             new List<string>()
         }
     });
 });
 
-// Add logging
-builder.Services.AddLogging(logging =>
+// Add authorization policies
+builder.Services.AddAuthorization(options =>
 {
-    logging.AddConsole();
+    options.AddPolicy("AdminOnly", policy => policy.RequireRole("Admin"));
+    options.AddPolicy("ManagerOnly", policy => policy.RequireRole("Manager"));
+    options.AddPolicy("CommercialOnly", policy => policy.RequireRole("Commercial"));
+    options.AddPolicy("AdminOrManager", policy => policy.RequireRole("Admin", "Manager"));
 });
+
+// Add logging
+builder.Services.AddLogging();
 
 var app = builder.Build();
 
@@ -132,11 +161,11 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseCors("AllowAll");
 app.UseAuthentication();
 app.UseAuthorization();
-app.MapControllers();
+app.UseSession();
 
-// Seed roles, admin user, and sync commercials
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
@@ -144,29 +173,21 @@ using (var scope = app.Services.CreateScope())
     {
         var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
         var userManager = services.GetRequiredService<UserManager<IdentityUser>>();
-        var syncService = services.GetRequiredService<ISyncService>();
         var logger = services.GetRequiredService<ILogger<Program>>();
 
-        // Seed roles
         await SeedRolesAsync(roleManager);
-
-        // Seed admin user
-        await SeedAdminUserAsync(userManager);
-
-        // Sync commercials (assuming this is implemented in SyncService)
-        var syncResult = await syncService.SynchronizeCommercialsAsync();
-        logger.LogInformation(syncResult);
+        await SeedAdminUserAsync(userManager, logger);
     }
     catch (Exception ex)
     {
         var logger = services.GetRequiredService<ILogger<Program>>();
-        logger.LogError(ex, "An error occurred during startup seeding/syncing.");
+        logger.LogError(ex, "An error occurred during startup seeding.");
     }
 }
 
+app.MapControllers();
 app.Run();
 
-// Method to seed roles
 async Task SeedRolesAsync(RoleManager<IdentityRole> roleManager)
 {
     string[] roleNames = { "Admin", "Manager", "Commercial" };
@@ -179,8 +200,7 @@ async Task SeedRolesAsync(RoleManager<IdentityRole> roleManager)
     }
 }
 
-// Method to seed admin user
-async Task SeedAdminUserAsync(UserManager<IdentityUser> userManager)
+async Task SeedAdminUserAsync(UserManager<IdentityUser> userManager, ILogger<Program> logger)
 {
     var adminUser = await userManager.FindByEmailAsync("admin@company.com");
     if (adminUser == null)
@@ -195,9 +215,11 @@ async Task SeedAdminUserAsync(UserManager<IdentityUser> userManager)
         if (result.Succeeded)
         {
             await userManager.AddToRoleAsync(adminUser, "Admin");
+            logger.LogInformation("Admin user seeded successfully.");
         }
         else
         {
+            logger.LogError("Failed to create admin user: {Errors}", string.Join(", ", result.Errors));
             throw new Exception("Failed to create admin user: " + string.Join(", ", result.Errors.Select(e => e.Description)));
         }
     }
